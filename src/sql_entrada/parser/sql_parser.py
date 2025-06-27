@@ -1,8 +1,8 @@
 """
-SQL Parser Module
+Módulo de Análise SQL
 
-A dedicated SQL parsing module that extracts and analyzes SQL query components.
-This parser focuses on SELECT statements and breaks them down into their constituent parts.
+Um módulo dedicado de análise SQL que extrai e analisa componentes de consultas SQL.
+Este analisador foca em instruções SELECT e as decompõe em suas partes constituintes.
 """
 
 import re
@@ -12,7 +12,7 @@ from enum import Enum
 
 
 class SQLClauseType(Enum):
-    """Enumeration of supported SQL clause types."""
+    """Enumeração dos tipos de cláusulas SQL suportadas."""
     SELECT = "SELECT"
     FROM = "FROM"
     WHERE = "WHERE"
@@ -27,7 +27,7 @@ class SQLClauseType(Enum):
 
 
 class OperatorType(Enum):
-    """Enumeration of supported SQL operators."""
+    """Enumeração dos operadores SQL suportados."""
     EQUALS = "="
     NOT_EQUALS = "!="
     NOT_EQUALS_ALT = "<>"
@@ -45,7 +45,7 @@ class OperatorType(Enum):
 
 
 class AggregateFunction(Enum):
-    """Enumeration of supported aggregate functions."""
+    """Enumeração das funções de agregação suportadas."""
     COUNT = "COUNT"
     SUM = "SUM"
     AVG = "AVG"
@@ -55,7 +55,7 @@ class AggregateFunction(Enum):
 
 
 class JoinType(Enum):
-    """Enumeration of supported JOIN types."""
+    """Enumeração dos tipos de JOIN suportados."""
     INNER = "INNER JOIN"
     LEFT = "LEFT JOIN"
     RIGHT = "RIGHT JOIN"
@@ -65,7 +65,7 @@ class JoinType(Enum):
 
 @dataclass
 class SelectColumn:
-    """Represents a column in the SELECT clause."""
+    """Representa uma coluna na cláusula SELECT."""
     name: str
     alias: Optional[str] = None
     is_wildcard: bool = False
@@ -87,7 +87,7 @@ class SelectColumn:
 
 @dataclass
 class WhereCondition:
-    """Represents a condition in the WHERE clause."""
+    """Representa uma condição na cláusula WHERE."""
     column: str
     operator: str
     value: Union[str, int, float]
@@ -99,9 +99,9 @@ class WhereCondition:
 
 @dataclass
 class OrderByColumn:
-    """Represents a column in the ORDER BY clause."""
+    """Representa uma coluna na cláusula ORDER BY."""
     column: str
-    direction: str = "ASC"  # ASC or DESC
+    direction: str = "ASC"  # ASC ou DESC
     
     def __str__(self):
         return f"{self.column} {self.direction}"
@@ -109,7 +109,7 @@ class OrderByColumn:
 
 @dataclass
 class JoinClause:
-    """Represents a JOIN clause."""
+    """Representa uma cláusula JOIN."""
     join_type: str  # INNER, LEFT, RIGHT, etc.
     table: str
     condition: str
@@ -120,7 +120,7 @@ class JoinClause:
 
 @dataclass
 class GroupByColumn:
-    """Represents a column in the GROUP BY clause."""
+    """Representa uma coluna na cláusula GROUP BY."""
     column: str
     
     def __str__(self):
@@ -129,7 +129,7 @@ class GroupByColumn:
 
 @dataclass
 class ParsedSQL:
-    """Container for parsed SQL query components."""
+    """Container para componentes de consulta SQL analisados."""
     original_query: str
     select_columns: List[SelectColumn]
     from_table: str
@@ -146,20 +146,20 @@ class ParsedSQL:
     def __post_init__(self):
         if self.errors is None:
             self.errors = []
-        # Check if query has aggregate functions
+        # Verificar se a consulta tem funções de agregação
         self.has_aggregates = any(col.is_aggregate for col in self.select_columns)
 
 
 class SQLParser:
     """
-    SQL Parser class that analyzes and breaks down SQL SELECT statements.
+    Classe Analisador SQL que analisa e decompõe instruções SQL SELECT.
     
-    This parser uses regex patterns to extract different components of SQL queries
-    and provides structured access to the parsed elements.
+    Este analisador usa padrões regex para extrair diferentes componentes de consultas SQL
+    e fornece acesso estruturado aos elementos analisados.
     """
     
     def __init__(self):
-        """Initialize the SQL parser with regex patterns."""
+        """Inicializar o analisador SQL com padrões regex."""
         self.patterns = {
             'main_query': (
                 r"SELECT\s+(?P<select>.*?)\s+FROM\s+(?P<from>\S+(?:\s+\w+)?)"
