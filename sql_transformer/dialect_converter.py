@@ -2,6 +2,7 @@
 Conversor de dialetos SQL específicos (Oracle, PostgreSQL) para Spark SQL
 """
 import re
+from .oracle_to_postgresql import translate_oracle_dql_to_postgresql, normalize_sql_query
 
 class DialectConverter:
     """Converte construções específicas de dialetos SQL para Spark SQL"""
@@ -104,6 +105,16 @@ class DialectConverter:
         return converted
     
     @staticmethod
+    def convert_oracle_to_postgresql(sql_query):
+        """Converte SQL Oracle para PostgreSQL usando o conversor avançado"""
+        return translate_oracle_dql_to_postgresql(sql_query)
+    
+    @staticmethod
+    def normalize_oracle_query(sql_query):
+        """Normaliza consulta Oracle para PostgreSQL/Spark SQL padrão"""
+        return normalize_sql_query(sql_query)
+    
+    @staticmethod
     def convert_to_spark_compatible(sql_query):
         """Converte SQL de qualquer dialeto para Spark SQL compatível"""
         dialect = DialectConverter.detect_dialect(sql_query)
@@ -114,3 +125,13 @@ class DialectConverter:
             return DialectConverter.convert_postgresql_to_spark(sql_query)
         else:
             return sql_query  # Já é padrão SQL
+    
+    @staticmethod
+    def convert_to_postgresql_compatible(sql_query):
+        """Converte SQL Oracle para PostgreSQL usando conversor avançado"""
+        dialect = DialectConverter.detect_dialect(sql_query)
+        
+        if dialect == 'oracle':
+            return DialectConverter.convert_oracle_to_postgresql(sql_query)
+        else:
+            return sql_query  # Já compatível ou não precisa conversão

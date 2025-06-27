@@ -43,7 +43,20 @@ def process_file(input_file, output_format, output_dir=None):
         
         results = {}
         
-        if output_format in ['pyspark', 'both']:
+        if output_format in ['postgresql']:
+            postgresql_code = DialectConverter.convert_oracle_to_postgresql(sql_content)
+            postgresql_file = output_path / f"{base_name}_postgresql.sql"
+            
+            with open(postgresql_file, 'w', encoding='utf-8') as f:
+                f.write(f"-- PostgreSQL gerado automaticamente\n")
+                f.write(f"-- Arquivo original: {input_file}\n")
+                f.write(f"-- Dialeto detectado: {dialect}\n\n")
+                f.write(postgresql_code)
+            
+            results['postgresql'] = str(postgresql_file)
+            print(f"PostgreSQL gerado: {postgresql_file}")
+        
+        elif output_format in ['pyspark', 'both']:
             pyspark_code = convert_to_pyspark(parsed)
             pyspark_file = output_path / f"{base_name}_pyspark.py"
             
@@ -131,7 +144,7 @@ Exemplos de uso:
     group.add_argument('-d', '--directory', help='Diretório com arquivos SQL')
     
     parser.add_argument('-o', '--output', 
-                       choices=['pyspark', 'sparksql', 'both'],
+                       choices=['pyspark', 'sparksql', 'postgresql', 'both'],
                        default='both',
                        help='Formato de saída (padrão: both)')
     
