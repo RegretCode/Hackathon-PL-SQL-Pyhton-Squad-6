@@ -1,0 +1,12 @@
+# SQL Parser
+sqlparse>=0.5.3
+antlr4-python3-runtime>=4.11.1
+
+# Spark
+pyspark>=4.0.0
+
+# Testing
+pytest>=7.0.0
+
+# UI
+streamlit>=1.15.0

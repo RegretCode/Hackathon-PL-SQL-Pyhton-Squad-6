@@ -1,0 +1,151 @@
+Iniciativa
+
+#1 Desenvolvimento do Parser SQL para Spark
+
+Esta iniciativa visa criar um robusto parser SQL/Postgress que será o núcleo da ferramenta de conversão de scripts SQL/Postegress legados para código Spark, SparkSQL.
+
+Escopo da Iniciativa:
+Desenvolver um parser SQL capaz de interpretar e decompor scripts SQL complexos, incluindo SELECT, JOIN, WHERE, GROUP BY, ORDER BY e HAVING.
+
+Objetivos Claros e Mensuráveis:
+- Criar um parser que interprete corretamente 95% dos scripts SQL de teste até o final do segundo dia.
+- Alcançar uma taxa de precisão de 98% na decomposição de consultas SQL complexas até o final do terceiro dia.
+
+Plano de Ação:
+- Pesquisar e selecionar bibliotecas de parsing SQL existentes
+- Desenvolver gramática personalizada para SQL Oracle/PostgreSQL
+- Implementar funções de parsing para cada cláusula SQL
+- Criar testes unitários abrangentes
+- Realizar testes de integração com diversos scripts SQL complexos
+- Otimizar o desempenho do parser
+
+Riscos e Mitigações:
+- Risco: Complexidade excessiva de alguns scripts SQL
+  Mitigação: Implementar um sistema de logging detalhado para identificar e tratar casos específicos
+
+Indicadores de Desempenho (KPIs):
+- Porcentagem de scripts SQL corretamente interpretados
+- Tempo médio de processamento por script
+- Número de casos de erro não tratados identificados em produção
+
+#2 Implementação do Gerador de Código Spark
+
+Esta iniciativa foca no desenvolvimento do componente responsável por gerar código Spark equivalente a partir da estrutura SQL/Postegress analisada.
+
+Escopo da Iniciativa:
+Criar um gerador de código que traduza as estruturas SQL/Postegress analisadas em código PySpark (DataFrame) e SparkSQL equivalente e otimizado.
+
+Objetivos Claros e Mensuráveis:
+- Gerar código Spark funcional para 90% dos casos de teste até o final do segundo dia.
+- Atingir 95% de equivalência funcional entre o SQL original e o código Spark gerado até o final do terceiro dia.
+
+Plano de Ação:
+- Mapear equivalências entre operações SQL e Spark
+- Desenvolver templates para geração de código PySpark e SparkSQL
+- Implementar lógica de otimização para o código Spark gerado
+- Criar testes de equivalência funcional
+- Realizar testes de desempenho comparativos
+- Documentar padrões de conversão e limitações
+
+Riscos e Mitigações:
+- Risco: Diferenças semânticas entre SQL/Postegress e Spark
+  Mitigação: Manter um registro detalhado de casos especiais e implementar tratamentos específicos
+
+
+Indicadores de Desempenho (KPIs):
+- Porcentagem de código gerado que executa sem erros
+- Tempo de execução do código Spark vs. SQL original
+- Número de otimizações bem-sucedidas implementadas
+
+#3 Integração e Interface de Usuário
+
+Esta iniciativa se concentra na criação de uma interface amigável e na integração dos componentes para formar a ferramenta completa de conversão SQL para Spark.
+
+Escopo da Iniciativa:
+Desenvolver uma interface de usuário intuitiva e integrar o parser SQL e o gerador de código Spark em uma ferramenta coesa e fácil de usar.
+
+Objetivos Claros e Mensuráveis:
+- Lançar uma versão beta da ferramenta com interface de linha de comando até o final do segundo dia.
+- Desenvolver uma interface gráfica web e atingir um Net Promoter Score (NPS) de 8 entre os testadores beta até o final do terceiro dia.
+
+Plano de Ação:
+- Projetar a arquitetura de integração dos componentes
+- Implementar interface de linha de comando
+- Desenvolver API RESTful para os serviços de conversão
+- Criar interface web utilizando um framework moderno (ex: React)
+- Conduzir testes de usabilidade
+- Implementar sistema de feedback e relatórios de erro
+
+Riscos e Mitigações:
+- Risco: Dificuldades de integração entre componentes
+  Mitigação: Adotar uma abordagem de integração contínua e testes automatizados
+
+Indicadores de Desempenho (KPIs):
+- Tempo médio que os usuários levam para concluir uma conversão
+- Número de conversões bem-sucedidas por dia
+- Taxa de adoção da ferramenta entre os usuários-alvo
+
+Epic
+
+#1 Análise e Parsing de Scripts SQL
+
+Objetivo: Desenvolver um módulo capaz de analisar e interpretar scripts SQL/Postegress legados, identificando suas estruturas e componentes.
+
+Funcionalidade: Criar um parser que possa ler e decompor queries SQL complexas, reconhecendo instruções como SELECT, JOIN, WHERE, GROUP BY, ORDER BY, HAVING, entre outras subquerys.
+
+Escopo do Épico: Implementar um analisador léxico e sintático para SQL, mapear a estrutura da query em uma representação intermediária, e fornecer uma interface para acessar os componentes analisados da query.
+
+#2 Geração de Código SparkSQL
+
+Objetivo: Criar um módulo que transforme a estrutura SQL analisada em código SparkSQL equivalente.
+
+Funcionalidade: Converter a representação intermediária da query SQL em uma string executável via spark.sql(), mantendo a lógica e a estrutura da query original.
+
+Escopo do Épico: Desenvolver funções de tradução para cada componente SQL (SELECT, JOIN, WHERE, etc.), gerar a string SparkSQL completa, e garantir que o código gerado seja sintaticamente correto e executável no Spark.
+
+#3 Geração de Código PySpark DataFrame
+
+Objetivo: Desenvolver um módulo para transformar a estrutura SQL analisada em código PySpark utilizando a API de DataFrame.
+
+Funcionalidade: Converter a representação intermediária da query SQL em uma série de operações de DataFrame do PySpark, preservando a lógica e o resultado da query original.
+
+Escopo do Épico: Implementar funções de tradução para cada componente SQL em operações de DataFrame equivalentes, encadear as operações corretamente, e garantir que o código gerado seja sintaticamente correto e eficiente.
+
+#4 Interface de Usuário e Integração
+
+Objetivo: Criar uma interface de usuário amigável e integrar todos os componentes do sistema.
+
+Funcionalidade: Desenvolver uma interface que permita aos usuários inserir scripts SQL, visualizar o código Spark gerado (tanto SparkSQL quanto PySpark DataFrame), e possivelmente executar o código gerado em um ambiente Spark.
+
+Escopo do Épico: Projetar e implementar uma interface de linha de comando ou GUI, integrar os módulos de análise e geração de código, implementar tratamento de erros e feedback ao usuário, e possivelmente adicionar recursos como salvamento de resultados e histórico de conversões.
+
+Historia do Usuário
+
+Transformação Automática de SQL para Spark
+
+Contexto
+Como engenheiro de dados, eu quero converter automaticamente scripts SQL/Postgress legados em código Spark equivalente, para otimizar minhas tarefas e modernizar meus processos de análise de dados.
+
+Regras de negócio
+- Preservação da Lógica Original
+  A ferramenta deve manter a lógica e funcionalidade do script SQL original na versão convertida para Spark.
+- Suporte a Múltiplos Formatos de Saída
+  O sistema deve oferecer opções de conversão para PySpark DataFrame API e SparkSQL.
+
+Critérios técnicos macro
+- Implementação em Python
+  A ferramenta deve ser desenvolvida utilizando a linguagem Python para garantir compatibilidade com o ecossistema Spark.
+- Integração com Apache Spark
+  O código gerado deve ser compatível com as versões mais recentes do Apache Spark.
+
+Requisitos funcionais 
+- Interface de Entrada de SQL
+  O sistema deve fornecer uma interface onde o usuário possa inserir o script SQL a ser convertido.
+- Seleção de Formato de Saída
+  O usuário deve poder escolher entre a conversão para PySpark DataFrame API ou SparkSQL.
+
+Requisitos não funcionais
+- Desempenho
+  A conversão deve ser realizada em tempo hábil, não excedendo 5 segundos para scripts SQL de complexidade média.
+- Usabilidade
+  A interface do usuário deve ser intuitiva e de fácil navegação, permitindo que engenheiros de dados com diferentes níveis de experiência possam utilizar a ferramenta eficientemente.

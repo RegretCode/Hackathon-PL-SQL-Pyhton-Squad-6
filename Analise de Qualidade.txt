@@ -1,0 +1,15 @@
+Conversão de SQL para PySpark DataFrame API
+
+Dado que o usuário acessa a interface de entrada de SQL
+Quando o usuário insere um script SQL válido
+E seleciona a opção de conversão para PySpark DataFrame API
+Então o sistema deve gerar o código PySpark equivalente em menos de 5 segundos
+E o código gerado deve preservar a lógica original do SQL
+
+Conversão de SQL complexo para SparkSQL
+
+Dado que o usuário acessa a ferramenta de conversão
+Quando o usuário insere um script SQL complexo com múltiplas junções e subconsultas
+E escolhe a opção de conversão para SparkSQL
+Então o sistema deve converter o script mantendo sua funcionalidade original
+E o código SparkSQL gerado deve ser compatível com a versão mais recente do Apache Spark

@@ -1,0 +1,37 @@
+Desenvolvimento do Parser SQL para AST
+
+Objetivo:
+Criar um parser robusto que converta scripts SQL em uma Árvore de Sintaxe Abstrata (AST), facilitando a posterior transformação para código Spark.
+
+Regras de negócio:
+- O parser deve suportar todos os comandos SQL comumente usados em scripts legados.
+- A AST gerada deve preservar a estrutura e a lógica do SQL original.
+- O parser deve ser capaz de lidar com queries complexas, incluindo subqueries, joins e funções de janela.
+
+Etapas:
+1. Pesquisar e selecionar uma biblioteca de parsing SQL apropriada (como sqlparse ou antlr4).
+2. Implementar a função de parsing que converte o SQL em AST.
+3. Criar testes unitários para validar o parsing de diferentes tipos de comandos SQL.
+4. Desenvolver um mecanismo de tratamento de erros para lidar com SQL mal formatado ou não suportado.
+5. Otimizar o desempenho do parser para lidar com scripts SQL grandes e complexos.
+6. Documentar a estrutura da AST gerada para facilitar a fase de transformação.
+
+Implementação do Conversor AST para Spark
+
+Objetivo:
+Desenvolver um módulo que transforme a AST gerada pelo parser SQL em código Spark equivalente, tanto para PySpark DataFrame API quanto para SparkSQL.
+
+Regras de negócio:
+- O código Spark gerado deve manter a lógica e funcionalidade do script SQL original.
+- O conversor deve suportar a geração de código para PySpark DataFrame API e SparkSQL.
+- O código gerado deve ser otimizado para o desempenho no ambiente Spark.
+
+Etapas:
+1. Projetar a arquitetura do conversor, definindo classes e métodos para cada tipo de nó da AST.
+2. Implementar a lógica de conversão para operações básicas (SELECT, FROM, WHERE, GROUP BY, etc.).
+3. Desenvolver a conversão de funções SQL para suas equivalentes em Spark.
+4. Criar um mecanismo para lidar com subqueries e joins complexos.
+5. Implementar a geração de código específico para PySpark DataFrame API e SparkSQL.
+6. Otimizar o código gerado, aplicando boas práticas de programação Spark.
+7. Criar testes de integração para validar a conversão completa de SQL para Spark.
+8. Implementar um sistema de logging para rastrear o processo de conversão e facilitar a depuração.
