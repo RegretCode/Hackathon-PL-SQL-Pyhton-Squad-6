@@ -1,14 +1,17 @@
 def convert_to_pyspark(parsed_sql):
-    """Converte SQL parseado para código PySpark"""
-    lines = []
+    """Converte SQL parseado para código PySpark usando method chaining"""
     
-    # Inicializar DataFrame principal
-    if parsed_sql.get("from"):
-        lines.append(f'df = spark.table("{parsed_sql["from"]}")')
-    else:
+    if not parsed_sql.get("from"):
         return "# Erro: Tabela FROM não especificada"
     
-    # Processar JOINs
+    # Construir a cadeia de transformações
+    chain_parts = []
+    join_tables = []
+    
+    # 1. Inicializar com spark.table()
+    chain_parts.append(f'spark.table("{parsed_sql["from"]}")')
+    
+    # 2. Processar JOINs
     for join in parsed_sql.get("joins", []):
         join_type = join["type"].lower().replace(" join", "")
         if join_type == "inner":
@@ -20,41 +23,37 @@ def convert_to_pyspark(parsed_sql):
         elif join_type == "full":
             join_type = "outer"
         
-        lines.append(f'df_{join["table"]} = spark.table("{join["table"]}")')
-        lines.append(f'df = df.join(df_{join["table"]}, expr("{join["condition"]}"), "{join_type}")')
+        join_tables.append(f'df_{join["table"]} = spark.table("{join["table"]}")')
+        chain_parts.append(f'.join(df_{join["table"]}, expr("{join["condition"]}"), "{join_type}")')
     
-    # Processar WHERE
+    # 3. Processar WHERE
     if parsed_sql.get("where"):
         where_condition = _convert_sql_condition_to_pyspark(parsed_sql["where"])
-        lines.append(f'df = df.filter({where_condition})')
+        chain_parts.append(f'.filter({where_condition})')
     
-    # Processar GROUP BY
+    # 4. Processar GROUP BY
     if parsed_sql.get("group_by"):
         group_cols = ', '.join(f'col("{col}")' for col in parsed_sql["group_by"])
         
         # Identificar funções agregadas no SELECT
         agg_functions = []
-        regular_selects = []
-        
         for select_item in parsed_sql.get("select", []):
             expr_text = select_item["expression"]
             if any(func in expr_text.upper() for func in ["COUNT", "SUM", "AVG", "MAX", "MIN"]):
                 agg_func = _convert_aggregate_function(expr_text, select_item.get("alias"))
                 agg_functions.append(agg_func)
-            else:
-                regular_selects.append(select_item)
         
         if agg_functions:
-            lines.append(f'df = df.groupBy({group_cols}).agg({", ".join(agg_functions)})')
+            chain_parts.append(f'.groupBy({group_cols}).agg({", ".join(agg_functions)})')
         else:
-            lines.append(f'df = df.groupBy({group_cols})')
+            chain_parts.append(f'.groupBy({group_cols})')
     
-    # Processar HAVING
+    # 5. Processar HAVING
     if parsed_sql.get("having"):
         having_condition = _convert_sql_condition_to_pyspark(parsed_sql["having"])
-        lines.append(f'df = df.filter({having_condition})')
+        chain_parts.append(f'.filter({having_condition})')
     
-    # Processar SELECT (se não houver GROUP BY)
+    # 6. Processar SELECT (se não houver GROUP BY)
     if parsed_sql.get("select") and not parsed_sql.get("group_by"):
         select_expressions = []
         for select_item in parsed_sql["select"]:
@@ -67,9 +66,9 @@ def convert_to_pyspark(parsed_sql):
                 select_expressions.append(f'col("{expr_text}")')
         
         selects = ', '.join(select_expressions)
-        lines.append(f'df = df.select({selects})')
+        chain_parts.append(f'.select({selects})')
     
-    # Processar ORDER BY
+    # 7. Processar ORDER BY
     if parsed_sql.get("order_by"):
         order_expressions = []
         for order_col in parsed_sql["order_by"]:
@@ -81,16 +80,30 @@ def convert_to_pyspark(parsed_sql):
                 order_expressions.append(f'col("{col_name}").asc()')
         
         orders = ', '.join(order_expressions)
-        lines.append(f'df = df.orderBy({orders})')
+        chain_parts.append(f'.orderBy({orders})')
     
-    # Processar LIMIT
+    # 8. Processar LIMIT
     if parsed_sql.get("limit"):
-        lines.append(f'df = df.limit({parsed_sql["limit"]})')
+        chain_parts.append(f'.limit({parsed_sql["limit"]})')
     
-    # Adicionar show() para visualizar resultado
-    lines.append('df.show()')
+    # Construir o resultado final
+    result_lines = []
     
-    return "\n".join(lines)
+    # Adicionar definições de tabelas de JOIN se necessário
+    if join_tables:
+        result_lines.extend(join_tables)
+        result_lines.append("")  # Linha em branco
+    
+    # Construir a cadeia principal
+    if len(chain_parts) <= 2:  # Cadeia simples - uma linha
+        result_lines.append(f'{"".join(chain_parts)}.show()')
+    else:  # Cadeia complexa - múltiplas linhas
+        result_lines.append(f'{chain_parts[0]} \\')
+        for part in chain_parts[1:]:
+            result_lines.append(f'    {part} \\')
+        result_lines[-1] = result_lines[-1].replace(' \\', '.show()')  # Remove última barra e adiciona .show()
+    
+    return "\n".join(result_lines)
 
 def _convert_sql_condition_to_pyspark(condition):
     """Converte condições SQL para expressões PySpark"""
