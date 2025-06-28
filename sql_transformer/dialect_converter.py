@@ -36,47 +36,10 @@ class DialectConverter:
     
     @staticmethod
     def convert_oracle_to_spark(sql_query):
-        """Converte construções Oracle para Spark SQL"""
-        converted = sql_query
-        
-        # ROWNUM -> ROW_NUMBER()
-        converted = re.sub(
-            r'\bROWNUM\b',
-            'ROW_NUMBER() OVER (ORDER BY 1)',
-            converted,
-            flags=re.IGNORECASE
-        )
-        
-        # SYSDATE -> CURRENT_TIMESTAMP
-        converted = re.sub(
-            r'\bSYSDATE\b',
-            'CURRENT_TIMESTAMP',
-            converted,
-            flags=re.IGNORECASE
-        )
-        
-        # NVL -> COALESCE
-        converted = re.sub(
-            r'\bNVL\s*\(',
-            'COALESCE(',
-            converted,
-            flags=re.IGNORECASE
-        )
-        
-        # DECODE -> CASE WHEN
-        decode_pattern = r'\bDECODE\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*(?:,\s*([^)]+))?\s*\)'
-        def decode_replacement(match):
-            expr = match.group(1)
-            value1 = match.group(2)
-            result1 = match.group(3)
-            default = match.group(4) if match.group(4) else 'NULL'
-            return f'CASE WHEN {expr} = {value1} THEN {result1} ELSE {default} END'
-        
-        converted = re.sub(decode_pattern, decode_replacement, converted, flags=re.IGNORECASE)
-        
-        # Remover referências à tabela DUAL
-        converted = re.sub(r'\bFROM\s+DUAL\b', '', converted, flags=re.IGNORECASE)
-        
+
+        converted = translate_oracle_dql_to_postgresql(sql_query)
+        converted = DialectConverter.convert_postgresql_to_spark(converted)
+
         return converted
     
     @staticmethod
