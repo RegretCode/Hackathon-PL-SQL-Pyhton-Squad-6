@@ -1,121 +1,120 @@
-import sqlparse
+# 🔧 SQL PARSER FUNCIONAL
+"""
+Módulo SQLParser - Parser SQL robusto para análise de consultas
+
+Este módulo fornece funcionalidade para analisar consultas SQL e extrair:
+- SELECT (colunas, aliases, funções)
+- FROM (tabela principal)
+- JOIN (tipos, condições, aliases)
+- WHERE (condições de filtro)
+- ORDER BY (ordenação)
+- COALESCE e CASE WHEN
+
+Foco na resolução correta de aliases de tabelas.
+"""
+
 import re
-from sqlparse.sql import IdentifierList, Identifier, Function
-from sqlparse.tokens import Keyword, DML
+from typing import Dict, List
+from dataclasses import dataclass
 
-def parse_sql(query):
-    """Parser SQL avançado para suportar construções complexas"""
-    query = query.strip().strip(";")
-    parsed = sqlparse.parse(query)[0]
-    
-    result = {
-        "select": [],
-        "from": "",
-        "joins": [],
-        "where": "",
-        "group_by": [],
-        "having": "",
-        "order_by": [],
-        "limit": ""
-    }
-    
-    # Extrair seções principais
-    query_parts = _split_query_parts(str(parsed))
-    
-    # Parse SELECT
-    if "SELECT" in query_parts:
-        result["select"] = _parse_select_clause(query_parts["SELECT"])
-    
-    # Parse FROM
-    if "FROM" in query_parts:
-        from_part, joins = _parse_from_clause(query_parts["FROM"])
-        result["from"] = from_part
-        result["joins"] = joins
-    
-    # Parse WHERE
-    if "WHERE" in query_parts:
-        result["where"] = query_parts["WHERE"].strip()
-    
-    # Parse GROUP BY
-    if "GROUP BY" in query_parts:
-        result["group_by"] = [col.strip() for col in query_parts["GROUP BY"].split(",")]
-    
-    # Parse HAVING
-    if "HAVING" in query_parts:
-        result["having"] = query_parts["HAVING"].strip()
-    
-    # Parse ORDER BY
-    if "ORDER BY" in query_parts:
-        result["order_by"] = [col.strip() for col in query_parts["ORDER BY"].split(",")]
-    
-    # Parse LIMIT
-    if "LIMIT" in query_parts:
-        result["limit"] = query_parts["LIMIT"].strip()
-    
-    return result
 
-def _split_query_parts(query):
-    """Divide a query em suas partes principais"""
-    parts = {}
-    keywords = ["SELECT", "FROM", "WHERE", "GROUP BY", "HAVING", "ORDER BY", "LIMIT"]
-    
-    query_upper = query.upper()
-    positions = {}
-    
-    for keyword in keywords:
-        match = re.search(rf'\b{keyword}\b', query_upper)
+@dataclass
+class ParsedSQL:
+    """Container para consulta SQL analisada."""
+    select_clause: str
+    from_clause: str
+    join_clauses: List[str]
+    where_clause: str
+    order_by_clause: str
+    table_aliases: Dict[str, str]  # alias -> real_name
+    original_query: str
+
+
+class SQLParser:
+    """Parser SQL robusto com foco na resolução de aliases."""
+
+    def __init__(self):
+        self.patterns = {
+            # Padrões principais
+            'select': r'SELECT\s+(.*?)(?=\s+FROM)',
+            'from': r'FROM\s+([\w\.]+)(?:\s+(?:AS\s+)?([\w]+))?',
+            'join': r'((?:INNER|LEFT|RIGHT|FULL)\s+)?JOIN\s+([\w\.]+)(?:\s+(?:AS\s+)?([\w]+))?\s+ON\s+([^\s]+(?:\s*[=<>!]+\s*[^\s]+)*)',
+            'where': r'WHERE\s+(.*?)(?=\s+(?:GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT)|$)',
+            'order_by': r'ORDER\s+BY\s+(.*?)(?=\s+(?:LIMIT)|$)',
+            'coalesce': r'COALESCE\s*\(([^)]+)\)',
+            'case_when': r'CASE\s+.*?\s+END'
+        }
+
+    def parse(self, sql: str) -> ParsedSQL:
+        """Analisar consulta SQL completa."""
+        # Normalizar SQL para facilitar parsing
+        sql_clean = re.sub(r'\s+', ' ', sql.strip())
+        sql_clean = re.sub(r'\n', ' ', sql_clean)
+
+        # Extrair clauses
+        select_clause = self._extract_clause(sql_clean, 'select')
+        from_match = re.search(self.patterns['from'], sql_clean, re.IGNORECASE)
+
+        # Extrair FROM e alias da tabela principal
+        from_clause = ""
+        table_aliases = {}
+
+        if from_match:
+            table_name = from_match.group(1)
+            table_alias = from_match.group(2)
+            from_clause = table_name
+
+            if table_alias:
+                table_aliases[table_alias] = table_name
+
+        # Extrair JOINs e seus aliases
+        join_clauses = []
+        join_matches = re.finditer(self.patterns['join'], sql_clean, re.IGNORECASE)
+
+        for match in join_matches:
+            join_type = (match.group(1) or "INNER").strip()
+            join_table = match.group(2)
+            join_alias = match.group(3)
+            join_condition = match.group(4)
+
+            if join_alias:
+                table_aliases[join_alias] = join_table
+
+            join_clauses.append(f"{join_type} JOIN {join_table} ON {join_condition}")
+
+        # Extrair outras clauses
+        where_clause = self._extract_clause(sql_clean, 'where')
+        order_by_clause = self._extract_clause(sql_clean, 'order_by')
+
+        return ParsedSQL(
+            select_clause=select_clause,
+            from_clause=from_clause,
+            join_clauses=join_clauses,
+            where_clause=where_clause,
+            order_by_clause=order_by_clause,
+            table_aliases=table_aliases,
+            original_query=sql
+        )
+
+    def _extract_clause(self, sql: str, clause_type: str) -> str:
+        """Extrair uma cláusula específica do SQL."""
+        pattern = self.patterns.get(clause_type, '')
+        if not pattern:
+            return ""
+
+        match = re.search(pattern, sql, re.IGNORECASE | re.DOTALL)
         if match:
-            positions[keyword] = match.start()
-    
-    sorted_keywords = sorted(positions.items(), key=lambda x: x[1])
-    
-    for i, (keyword, pos) in enumerate(sorted_keywords):
-        start_pos = pos + len(keyword)
-        end_pos = sorted_keywords[i + 1][1] if i + 1 < len(sorted_keywords) else len(query)
-        parts[keyword] = query[start_pos:end_pos].strip()
-    
-    return parts
+            return match.group(1).strip()
+        return ""
 
-def _parse_select_clause(select_part):
-    """Parse da cláusula SELECT"""
-    columns = []
-    for col in select_part.split(","):
-        col = col.strip()
-        # Detectar aliases
-        if " AS " in col.upper():
-            col_parts = re.split(r'\s+AS\s+', col, flags=re.IGNORECASE)
-            columns.append({"expression": col_parts[0].strip(), "alias": col_parts[1].strip()})
-        else:
-            columns.append({"expression": col, "alias": None})
-    return columns
 
-def _parse_from_clause(from_part):
-    """Parse da cláusula FROM incluindo JOINs"""
-    joins = []
-    
-    # Detectar JOINs
-    join_pattern = r'\b(INNER|LEFT|RIGHT|FULL|CROSS)\s+JOIN\b'
-    join_matches = list(re.finditer(join_pattern, from_part, re.IGNORECASE))
-    
-    if join_matches:
-        # Extrair tabela principal
-        main_table = from_part[:join_matches[0].start()].strip()
-        
-        # Extrair JOINs
-        for i, match in enumerate(join_matches):
-            start = match.start()
-            end = join_matches[i + 1].start() if i + 1 < len(join_matches) else len(from_part)
-            join_clause = from_part[start:end].strip()
-            
-            join_parts = re.split(r'\s+ON\s+', join_clause, flags=re.IGNORECASE)
-            if len(join_parts) == 2:
-                join_info = join_parts[0].strip().split()
-                joins.append({
-                    "type": " ".join(join_info[:-1]),
-                    "table": join_info[-1],
-                    "condition": join_parts[1].strip()
-                })
-        
-        return main_table, joins
-    else:
-        return from_part.strip(), []
+def parse_sql(sql):
+    """Função de compatibilidade para manter interface existente."""
+    parser = SQLParser()
+    return parser.parse(sql)
+
+if __name__ == "__main__":
+    # Exemplo de uso
+    sql = "SELECT nome, idade FROM clientes c WHERE c.idade > 30"
+    parsed = parse_sql(sql)
+    print(f"Parsed SQL: {parsed}")

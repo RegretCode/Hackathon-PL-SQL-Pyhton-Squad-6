@@ -1,6 +1,6 @@
-from sql_transformer.parser import parse_sql
-from sql_transformer.converter_pyspark import convert_to_pyspark
-from sql_transformer.converter_sparksql import convert_to_sparksql
+from .parser import SQLParser
+from .converter_pyspark import convert_to_pyspark, parse_sql
+from .converter_sparksql import convert_to_sparksql
 from sql_transformer.dialect_converter import DialectConverter
 
 def demo_basic():

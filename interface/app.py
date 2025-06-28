@@ -6,8 +6,8 @@ import streamlit as st
 import json
 from datetime import datetime
 
-from sql_transformer.parser import parse_sql
-from sql_transformer.converter_pyspark import convert_to_pyspark
+from sql_transformer.parser import SQLParser
+from sql_transformer.converter_pyspark import convert_to_pyspark, parse_sql
 from sql_transformer.converter_sparksql import convert_to_sparksql
 from sql_transformer.dialect_converter import DialectConverter
 
