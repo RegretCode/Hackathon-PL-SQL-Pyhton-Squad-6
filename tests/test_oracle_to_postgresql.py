@@ -67,8 +67,7 @@ class TestOracleToPostgreSQL(unittest.TestCase):
         
         oracle_query_with_format = "SELECT TRUNC(hire_date, 'MM') FROM employees"
         result_with_format = translate_oracle_dql_to_postgresql(oracle_query_with_format)
-        # O código atual não está mapeando corretamente o formato MM, então vamos testar o que realmente acontece
-        self.assertIn("DATE_TRUNC('day'", result_with_format)
+        self.assertIn("DATE_TRUNC('month'", result_with_format)
     
     def test_add_months_conversion(self):
         """Testa conversão de ADD_MONTHS"""
@@ -137,13 +136,11 @@ class TestOracleToPostgreSQL(unittest.TestCase):
         oracle_query = "SELECT SYSDATE FROM DUAL WHERE ROWNUM <= 1"
         result = normalize_sql_query(oracle_query)
         
-        # Há um bug na implementação que não está adicionando espaço antes de LIMIT
-        # e o SYSDATE não está sendo convertido corretamente neste caso
         self.assertIn("LIMIT 1", result)
         self.assertNotIn("DUAL", result.upper())
         self.assertNotIn("ROWNUM", result)
+        self.assertIn("NOW()", result)
         # Vamos apenas verificar se o resultado não está vazio
-        self.assertTrue(len(result.strip()) > 0)
     
     def test_semicolon_addition(self):
         """Testa se o ponto e vírgula é adicionado ao final"""
