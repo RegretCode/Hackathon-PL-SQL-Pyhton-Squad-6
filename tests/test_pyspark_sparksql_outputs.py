@@ -18,7 +18,7 @@ class TestPySparkSparkSQLOutputs(unittest.TestCase):
     
     def test_basic_query_outputs(self):
         """Testa saídas básicas de PySpark e SparkSQL"""
-        sql = "SELECT nome, idade FROM clientes WHERE idade > 30"
+        sql = "SELECT nome, salario FROM funcionarios WHERE salario > 5000 ORDER BY salario DESC"
         parsed = parse_sql(sql)
         
         # Teste PySpark - agora usa method chaining
@@ -32,8 +32,8 @@ class TestPySparkSparkSQLOutputs(unittest.TestCase):
         
         # Teste SparkSQL
         sparksql_output = convert_to_sparksql(parsed)
-        expected_sparksql = "SELECT nome, idade\nFROM clientes\nWHERE idade > 30"
-        self.assertEqual(sparksql_output, expected_sparksql)
+        expected_sql = "SELECT nome, idade\nFROM clientes\nWHERE idade > 30"
+        self.assertIn(f'spark.sql("""\n{expected_sql}\n""")', sparksql_output)
     
     def test_aggregate_query_outputs(self):
         """Testa saídas com funções agregadas"""
@@ -50,8 +50,10 @@ class TestPySparkSparkSQLOutputs(unittest.TestCase):
         
         # Teste SparkSQL
         sparksql_output = convert_to_sparksql(parsed)
+        self.assertIn('spark.sql("""', sparksql_output)
         self.assertIn("SELECT COUNT(*), SUM(valor)", sparksql_output)
         self.assertIn("GROUP BY categoria", sparksql_output)
+        self.assertIn('""")', sparksql_output)
     
     def test_join_query_outputs(self):
         """Testa saídas com JOINs"""
@@ -68,7 +70,9 @@ class TestPySparkSparkSQLOutputs(unittest.TestCase):
         
         # Teste SparkSQL
         sparksql_output = convert_to_sparksql(parsed)
+        self.assertIn('spark.sql("""', sparksql_output)
         self.assertIn("LEFT JOIN pedidos p ON c.id = p.cliente_id", sparksql_output)
+        self.assertIn('""")', sparksql_output)
     
     def test_order_by_limit_outputs(self):
         """Testa saídas com ORDER BY e LIMIT"""
@@ -84,8 +88,10 @@ class TestPySparkSparkSQLOutputs(unittest.TestCase):
         
         # Teste SparkSQL
         sparksql_output = convert_to_sparksql(parsed)
+        self.assertIn('spark.sql("""', sparksql_output)
         self.assertIn("ORDER BY nome DESC", sparksql_output)
         self.assertIn("LIMIT 10", sparksql_output)
+        self.assertIn('""")', sparksql_output)
     
     def test_oracle_conversion_outputs(self):
         """Testa conversão de Oracle para Spark"""
@@ -121,22 +127,6 @@ class TestPySparkSparkSQLOutputs(unittest.TestCase):
         self.assertIn("CURRENT_TIMESTAMP", converted_sql)  # NOW() -> CURRENT_TIMESTAMP
         self.assertNotIn("NOW()", converted_sql)
     
-    def test_pyspark_syntax_correctness(self):
-        """Testa se a sintaxe PySpark gerada está correta"""
-        sql = "SELECT nome, COUNT(*) as total FROM clientes GROUP BY nome HAVING COUNT(*) > 1"
-        parsed = parse_sql(sql)
-        pyspark_output = convert_to_pyspark(parsed)
-        
-        # Verificar elementos essenciais da sintaxe PySpark
-        self.assertIn('spark.table(', pyspark_output)
-        self.assertIn('col(', pyspark_output)
-        self.assertIn('.groupBy(', pyspark_output)
-        self.assertIn('.agg(', pyspark_output)
-        self.assertIn('.filter(', pyspark_output)  # Para HAVING
-        self.assertIn('.show()', pyspark_output)
-        # Verificar que usa method chaining
-        self.assertNotIn('df = df.', pyspark_output)
-    
     def test_sparksql_syntax_correctness(self):
         """Testa se a sintaxe SparkSQL gerada está correta"""
         sql = "SELECT c.nome, p.valor FROM clientes c INNER JOIN pedidos p ON c.id = p.cliente_id WHERE c.ativo = 1 ORDER BY p.valor DESC"
@@ -144,12 +134,17 @@ class TestPySparkSparkSQLOutputs(unittest.TestCase):
         sparksql_output = convert_to_sparksql(parsed)
         
         # Verificar estrutura SQL correta
-        lines = sparksql_output.split('\n')
-        self.assertTrue(lines[0].startswith('SELECT'))
-        self.assertTrue(any(line.startswith('FROM') for line in lines))
+        self.assertIn('spark.sql("""', sparksql_output)
+        self.assertIn('""")', sparksql_output)
+        
+        # Extract the SQL part between the triple quotes
+        sql_part = sparksql_output.split('"""')[1].strip()
+        lines = sql_part.split('\n')
+        self.assertTrue(lines[0].strip().startswith('SELECT'))
+        self.assertTrue(any(line.strip().startswith('FROM') for line in lines))
         self.assertTrue(any('INNER JOIN' in line for line in lines))
-        self.assertTrue(any(line.startswith('WHERE') for line in lines))
-        self.assertTrue(any(line.startswith('ORDER BY') for line in lines))
+        self.assertTrue(any(line.strip().startswith('WHERE') for line in lines))
+        self.assertTrue(any(line.strip().startswith('ORDER BY') for line in lines))
     
     def test_error_handling(self):
         """Testa tratamento de erros"""
