@@ -15,7 +15,7 @@ Características:
 
 import re
 from typing import Dict, List
-from sql_parser import SQLParser, ParsedSQL
+from .parser import SQLParser, ParsedSQL
 
 class SimpleSQLTranslator:
     """Tradutor SQL para PySpark com resolução robusta de aliases."""

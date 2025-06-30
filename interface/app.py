@@ -11,6 +11,32 @@ from sql_transformer.converter_pyspark import convert_to_pyspark, parse_sql
 from sql_transformer.converter_sparksql import convert_to_sparksql
 from sql_transformer.dialect_converter import DialectConverter
 
+def format_pyspark_code(code):
+    """Formata o código PySpark para melhor legibilidade"""
+    formatted = code
+    
+    # Quebras de linha em métodos encadeados
+    methods_to_break = [
+        '.select(', '.filter(', '.join(', '.groupBy(', 
+        '.orderBy(', '.agg(', '.having(', '.limit(', '.where('
+    ]
+    
+    for method in methods_to_break:
+        formatted = formatted.replace(method, f' \\\n    {method}')
+    
+    # Quebra após parênteses de fechamento seguidos de ponto
+    formatted = formatted.replace(').', ') \\\n    .')
+    
+    # Remove quebras desnecessárias no início
+    formatted = formatted.replace('df = \\\n    spark', 'df = spark')
+    formatted = formatted.replace('result = \\\n    df', 'result = df')
+    
+    # Limpa quebras duplas
+    formatted = formatted.replace(' \\\n     \\', ' \\')
+    formatted = formatted.replace('\n    \\\n    ', '\n    ')
+    
+    return formatted
+
 # Configuração da página
 st.set_page_config(
     page_title="SQL to Spark Transformer",
@@ -123,12 +149,16 @@ with col2:
             if output_format == "PySpark" or output_format == "Ambos":
                 st.subheader("🐍 Código PySpark")
                 pyspark_result = convert_to_pyspark(parsed)
-                st.code(pyspark_result, language="python")
+                
+                # Aplicar formatação melhorada para melhor legibilidade
+                formatted_pyspark = format_pyspark_code(pyspark_result)
+                
+                st.code(formatted_pyspark, language="python")
                 
                 # Botão de download
                 st.download_button(
                     label="📥 Download PySpark (.py)",
-                    data=pyspark_result,
+                    data=formatted_pyspark,
                     file_name=f"spark_query_{datetime.now().strftime('%Y%m%d_%H%M%S')}.py",
                     mime="text/x-python"
                 )
