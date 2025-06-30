@@ -17,7 +17,6 @@ import re
 from typing import Dict, List
 from dataclasses import dataclass
 
-
 @dataclass
 class ParsedSQL:
     """Container para consulta SQL analisada."""
@@ -29,13 +28,10 @@ class ParsedSQL:
     table_aliases: Dict[str, str]  # alias -> real_name
     original_query: str
 
-
 class SQLParser:
     """Parser SQL robusto com foco na resolução de aliases."""
-
     def __init__(self):
         self.patterns = {
-            # Padrões principais
             'select': r'SELECT\s+(.*?)(?=\s+FROM)',
             'from': r'FROM\s+([\w\.]+)(?:\s+(?:AS\s+)?([\w]+))?',
             'join': r'((?:INNER|LEFT|RIGHT|FULL)\s+)?JOIN\s+([\w\.]+)(?:\s+(?:AS\s+)?([\w]+))?\s+ON\s+([^\s]+(?:\s*[=<>!]+\s*[^\s]+)*)',
@@ -44,48 +40,31 @@ class SQLParser:
             'coalesce': r'COALESCE\s*\(([^)]+)\)',
             'case_when': r'CASE\s+.*?\s+END'
         }
-
     def parse(self, sql: str) -> ParsedSQL:
-        """Analisar consulta SQL completa."""
-        # Normalizar SQL para facilitar parsing
         sql_clean = re.sub(r'\s+', ' ', sql.strip())
         sql_clean = re.sub(r'\n', ' ', sql_clean)
-
-        # Extrair clauses
         select_clause = self._extract_clause(sql_clean, 'select')
         from_match = re.search(self.patterns['from'], sql_clean, re.IGNORECASE)
-
-        # Extrair FROM e alias da tabela principal
         from_clause = ""
         table_aliases = {}
-
         if from_match:
             table_name = from_match.group(1)
             table_alias = from_match.group(2)
             from_clause = table_name
-
             if table_alias:
                 table_aliases[table_alias] = table_name
-
-        # Extrair JOINs e seus aliases
         join_clauses = []
         join_matches = re.finditer(self.patterns['join'], sql_clean, re.IGNORECASE)
-
         for match in join_matches:
             join_type = (match.group(1) or "INNER").strip()
             join_table = match.group(2)
             join_alias = match.group(3)
             join_condition = match.group(4)
-
             if join_alias:
                 table_aliases[join_alias] = join_table
-
             join_clauses.append(f"{join_type} JOIN {join_table} ON {join_condition}")
-
-        # Extrair outras clauses
         where_clause = self._extract_clause(sql_clean, 'where')
         order_by_clause = self._extract_clause(sql_clean, 'order_by')
-
         return ParsedSQL(
             select_clause=select_clause,
             from_clause=from_clause,
@@ -95,13 +74,10 @@ class SQLParser:
             table_aliases=table_aliases,
             original_query=sql
         )
-
     def _extract_clause(self, sql: str, clause_type: str) -> str:
-        """Extrair uma cláusula específica do SQL."""
         pattern = self.patterns.get(clause_type, '')
         if not pattern:
             return ""
-
         match = re.search(pattern, sql, re.IGNORECASE | re.DOTALL)
         if match:
             return match.group(1).strip()
