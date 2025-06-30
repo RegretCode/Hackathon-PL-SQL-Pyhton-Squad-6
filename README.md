@@ -58,17 +58,14 @@ SELECT nome, idade FROM clientes WHERE idade > 30
 
 **PySpark Gerado:**
 ```python
-df = spark.table("clientes")
-df = df.filter(expr("idade > 30"))
-df = df.select(col("nome"), col("idade"))
-df.show()
+df = spark.table('clientes').filter(F.col('idade') > F.lit(30)).select(F.col('nome'), F.col('idade'))
 ```
 
 **SparkSQL Gerado:**
-```sql
-SELECT nome, idade
-FROM clientes
-WHERE idade > 30
+```python
+spark.sql("""
+SELECT nome, idade FROM clientes WHERE idade > 30
+""")
 ```
 
 ### Exemplo 2: Query com JOIN e Agregação
@@ -85,14 +82,7 @@ ORDER BY preco_medio DESC
 
 **PySpark Gerado:**
 ```python
-df = spark.table("produtos")
-df_vendas = spark.table("vendas")
-df = df.join(df_vendas, expr("c.id = v.produto_id"), "inner")
-df = df.filter(expr("v.data_venda >= '2024-01-01'"))
-df = df.groupBy(col("c.categoria")).agg(count('*').alias("total"), avg(col("c.preco")).alias("preco_medio"))
-df = df.filter(expr("COUNT(*) > 10"))
-df = df.orderBy(col("preco_medio").desc())
-df.show()
+df = spark.table('produtos').join(spark.table('vendas'), F.col('produtos.id') == F.col('vendas.produto_id'), 'inner').filter(F.col('vendas.data_venda >') == F.lit('2024-01-01')).select(F.col('produtos.categoria'), F.count(F.col('*')).alias('total'), F.avg(F.col('produtos.preco')).alias('preco_medio')).orderBy(F.col('preco_medio').desc())
 ```
 
 ### Exemplo 3: Conversão Oracle
