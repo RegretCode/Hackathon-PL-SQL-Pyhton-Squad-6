@@ -89,7 +89,7 @@ with col1:
                           FROM produtos 
                           GROUP BY categoria 
                           HAVING COUNT(*) > 5""",
-        "Oracle (ROWNUM)": "SELECT * FROM (SELECT nome, salario FROM funcionarios ORDER BY salario DESC) WHERE ROWNUM <= 10",
+        "Oracle (ROWNUM)": "SELECT * FROM empregados WHERE ROWNUM <= 5;",
         "PostgreSQL (ILIKE)": "SELECT nome FROM clientes WHERE nome ILIKE '%silva%' LIMIT 20"
     }
     
