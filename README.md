@@ -1,205 +1,229 @@
-# Tradutor SQL para PySpark
+# Hackathon-PL-SQL-Pyhton-Squad-6
 
-Um projeto Python que traduz consultas SQL para chamadas da API DataFrame do PySpark. Esta ferramenta ajuda desenvolvedores a converter declarações SQL em operações PySpark equivalentes, suportando tanto Spark SQL quanto saídas da API DataFrame.
+Ferramenta para transformar SQL legado (Oracle, PostgreSQL) em PySpark e SparkSQL.
 
 ## Funcionalidades
+- Conversão automática SQL → PySpark/SparkSQL
+- Detecção de dialetos Oracle/PostgreSQL
+- Interface web Streamlit
+- CLI para processamento em lote
+- Suporte a JOINs, GROUP BY, funções agregadas
 
-- 🔄 **Saída Dupla**: Gera equivalentes tanto em Spark SQL quanto na API DataFrame do PySpark
-- 📝 **Suporte SELECT**: Manipula seleção de colunas com aliases
-- 🔍 **Cláusulas WHERE**: Suporta vários operadores e condições
-- 📊 **ORDER BY**: Ordenação ascendente e descendente
-- 🔢 **LIMIT**: Limitação de resultados
-- 🧩 **Expressões Complexas**: Operadores AND/OR e condições aninhadas
-- 🎯 **Modo Interativo**: Interface de linha de comando para testar consultas
+## Conversões de Dialetos
+**Oracle → Spark:**
+- ROWNUM → ROW_NUMBER()
+- SYSDATE → CURRENT_TIMESTAMP
+- NVL → COALESCE
+- DECODE → CASE WHEN
 
-## Recursos SQL Suportados
-
-✅ SELECT com seleção de colunas  
-✅ Cláusulas WHERE com vários operadores  
-✅ ORDER BY com ASC/DESC  
-✅ Cláusulas LIMIT  
-✅ Aliases de colunas (AS)  
-✅ SELECT \* (todas as colunas)  
-✅ Condições complexas com AND/OR
-
-## Estrutura do Projeto
-
-```
-sql_translator_project/
-├── src/
-│   ├── translator/
-│   │   ├── sql_translator.py    # Lógica central de tradução
-│   │   └── utils.py             # Funções utilitárias
-│   └── examples/
-│       └── demo_examples.py     # Demos e exemplos
-├── tests/
-│   └── test_translator.py       # Testes unitários
-├── main.py                      # Ponto de entrada principal da aplicação
-├── requirements.txt             # Dependências
-└── README.md                    # Este arquivo
-```
+**PostgreSQL → Spark:**
+- ILIKE → LIKE
+- NOW() → CURRENT_TIMESTAMP
+- EXTRACT → DATE_PART
 
 ## Instalação
-
-1. Clone ou baixe este projeto
-2. Navegue até o diretório do projeto
-3. Instale as dependências:
-
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Uso
 
-### Executando a Aplicação
-
-Execute a aplicação principal:
-
+### Interface Web
 ```bash
-python main.py
+streamlit run interface/app.py
 ```
 
-Isso apresentará várias opções:
+### CLI
+```bash
+python -m sql_transformer.cli -f query.sql -o both
+```
 
-1. Executar demo de tradução com casos de teste
-2. Executar demo prático com dados de exemplo
-3. Tradutor interativo
-4. Tradução rápida (consulta única)
-
-### Usando como um Módulo
-
+### Programático
 ```python
-from src.translator.sql_translator import SQLTranslator
+from sql_transformer.parser import parse_sql
+from sql_transformer.converter_pyspark import convert_to_pyspark
 
-# Inicializar tradutor
-translator = SQLTranslator()
-
-# Traduzir uma consulta SQL
-sql_query = "SELECT nome, idade FROM usuarios WHERE idade > 18 ORDER BY idade DESC"
-result = translator.translate(sql_query)
-
-print("SQL Original:", result['original_sql'])
-print("Spark SQL:", result['spark_sql'])
-print("Código PySpark:", result['pyspark_code'])
+sql = "SELECT nome FROM clientes WHERE idade > 30"
+parsed = parse_sql(sql)
+result = convert_to_pyspark(parsed)
 ```
 
-### Exemplo de Tradução
+## 📊 Exemplos de Conversão
 
-**SQL de Entrada:**
-
+### Exemplo 1: Query Simples
+**SQL Original:**
 ```sql
-SELECT nome, salario FROM funcionarios WHERE departamento = 'TI' ORDER BY salario DESC LIMIT 5
+SELECT nome, idade FROM clientes WHERE idade > 30
 ```
 
-**Saída Spark SQL:**
-
+**PySpark Gerado:**
 ```python
-spark.sql("""SELECT nome, salario FROM funcionarios WHERE departamento = 'TI' ORDER BY salario DESC LIMIT 5""")
+df = spark.table('clientes').filter(F.col('idade') > F.lit(30)).select(F.col('nome'), F.col('idade'))
 ```
 
-**Saída API DataFrame PySpark:**
-
+**SparkSQL Gerado:**
 ```python
-from pyspark.sql import functions as F
-
-funcionarios_df.select(F.col('nome'), F.col('salario')).filter((F.col('departamento') == 'TI')).orderBy(F.col('salario').desc()).limit(5)
+spark.sql("""
+SELECT nome, idade FROM clientes WHERE idade > 30
+""")
 ```
 
-## Testes
+### Exemplo 2: Query com JOIN e Agregação
+**SQL Original:**
+```sql
+SELECT c.categoria, COUNT(*) as total, AVG(c.preco) as preco_medio
+FROM produtos c
+INNER JOIN vendas v ON c.id = v.produto_id
+WHERE v.data_venda >= '2024-01-01'
+GROUP BY c.categoria
+HAVING COUNT(*) > 10
+ORDER BY preco_medio DESC
+```
 
-Execute os testes unitários:
+**PySpark Gerado:**
+```python
+df = spark.table('produtos').join(spark.table('vendas'), F.col('produtos.id') == F.col('vendas.produto_id'), 'inner').filter(F.col('vendas.data_venda >') == F.lit('2024-01-01')).select(F.col('produtos.categoria'), F.count(F.col('*')).alias('total'), F.avg(F.col('produtos.preco')).alias('preco_medio')).orderBy(F.col('preco_medio').desc())
+```
 
+### Exemplo 3: Conversão Oracle
+**SQL Oracle Original:**
+```sql
+SELECT nome, salario, ROWNUM
+FROM (
+    SELECT nome, salario
+    FROM funcionarios
+    WHERE NVL(ativo, 'N') = 'S'
+    ORDER BY salario DESC
+)
+WHERE ROWNUM <= 5
+```
+
+**SQL Convertido para Spark:**
+```sql
+SELECT nome, salario, ROW_NUMBER() OVER (ORDER BY 1)
+FROM (
+    SELECT nome, salario
+    FROM funcionarios
+    WHERE COALESCE(ativo, 'N') = 'S'
+    ORDER BY salario DESC
+)
+WHERE ROW_NUMBER() OVER (ORDER BY 1) <= 5
+```
+
+## 🏗️ Arquitetura
+
+```
+sql_transformer/
+├── __init__.py
+├── main.py                 # Demonstrações
+├── parser.py              # Parser SQL avançado
+├── converter_pyspark.py   # Conversor para PySpark
+├── converter_sparksql.py  # Conversor para SparkSQL
+├── dialect_converter.py  # Conversão de dialetos
+└── cli.py                # Interface de linha de comando
+
+interface/
+└── app.py                # Interface web Streamlit
+
+requirements.txt          # Dependências
+README.md                # Documentação
+```
+
+### Componentes Principais
+
+1. **Parser SQL** (`parser.py`)
+   - Análise sintática avançada
+   - Suporte a construções complexas
+   - Extração de metadados estruturados
+
+2. **Conversores** (`converter_*.py`)
+   - Geração de código PySpark otimizado
+   - Formatação de SparkSQL limpo
+   - Tratamento de casos especiais
+
+3. **Conversor de Dialetos** (`dialect_converter.py`)
+   - Detecção automática de dialetos
+   - Transformações específicas Oracle/PostgreSQL
+   - Compatibilidade com Spark SQL
+
+4. **Interface Web** (`interface/app.py`)
+   - Interface intuitiva com Streamlit
+   - Validação em tempo real
+   - Download de arquivos gerados
+
+5. **CLI** (`cli.py`)
+   - Processamento em lote
+   - Automação corporativa
+   - Relatórios de conversão
+
+## 🎯 Casos de Uso
+
+### 1. Migração de Data Warehouse
+- Conversão de procedures Oracle para Spark jobs
+- Modernização de ETL legado
+- Migração para arquiteturas cloud-native
+
+### 2. Desenvolvimento Ágil
+- Prototipagem rápida de queries Spark
+- Conversão de consultas ad-hoc
+- Padronização de código
+
+### 3. Treinamento e Educação
+- Aprendizado de PySpark através de SQL familiar
+- Comparação entre dialetos
+- Demonstrações práticas
+
+### 4. Automação Corporativa
+- Processamento em lote de scripts legados
+- Integração em pipelines CI/CD
+- Relatórios de migração
+
+## 🔧 Configuração Avançada
+
+### Variáveis de Ambiente
 ```bash
-python -m pytest tests/
+# Configurar Spark (opcional)
+export SPARK_HOME=/path/to/spark
+export PYSPARK_PYTHON=python3
+
+# Configurar logging
+export SQL_TRANSFORMER_LOG_LEVEL=INFO
 ```
 
-Ou execute testes com cobertura:
+### Personalização
+O sistema pode ser estendido através de:
+- Novos conversores de dialetos
+- Funções SQL customizadas
+- Templates de código personalizados
 
-```bash
-python -m pytest tests/ --cov=src --cov-report=html
-```
+## 🤝 Contribuição
 
-## Referência da API
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -am 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
 
-### Classe SQLTranslator
+## 📝 Licença
 
-#### `translate(sql_query: str) -> dict`
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
-Traduz uma consulta SQL para tanto Spark SQL quanto API DataFrame PySpark.
+## 🆘 Suporte
 
-**Parâmetros:**
+- **Issues**: Reporte bugs e solicite features no GitHub
+- **Documentação**: Consulte este README e os comentários no código
+- **Exemplos**: Execute `python sql_transformer/main.py` para ver demonstrações
 
-- `sql_query` (str): A consulta SQL para traduzir
+## 🚀 Roadmap
 
-**Retorna:**
+### Próximas Versões
+- [ ] Suporte a mais dialetos (SQL Server, MySQL)
+- [ ] Otimizações de performance automáticas
+- [ ] Integração com Databricks
+- [ ] Suporte a Delta Lake
+- [ ] API REST para integração
+- [ ] Plugin para IDEs populares
 
-- `dict`: Resultado da tradução contendo:
-  - `original_sql`: A consulta SQL de entrada
-  - `spark_sql`: Equivalente Spark SQL
-  - `pyspark_code`: Equivalente API DataFrame PySpark
-  - `translation_available`: Boolean indicando se a tradução PySpark foi bem-sucedida
-  - `translation_id`: Identificador único para a tradução
+---
 
-### Funções Utilitárias
-
-#### `translate_sql(sql_query: str) -> Tuple[str, Optional[str]]`
-
-Função central de tradução que converte SQL para PySpark.
-
-#### `convert_where_clause(where_clause: str) -> str`
-
-Converte cláusulas WHERE SQL para expressões filter PySpark.
-
-#### `get_test_cases() -> List[Dict[str, str]]`
-
-Retorna casos de teste predefinidos para validação.
-
-## Limitações
-
-- Atualmente suporta apenas declarações SELECT
-- Subconsultas complexas podem não ser totalmente suportadas
-- Algumas funções SQL avançadas podem exigir ajuste manual
-- Operações JOIN ainda não estão implementadas
-
-## Desenvolvimento
-
-### Adicionando Novas Funcionalidades
-
-1. Implemente nova funcionalidade em `src/translator/sql_translator.py`
-2. Adicione funções utilitárias em `src/translator/utils.py`
-3. Crie testes em `tests/test_translator.py`
-4. Atualize exemplos em `src/examples/demo_examples.py`
-
-### Estilo de Código
-
-O projeto segue as melhores práticas do Python:
-
-- Use nomes de variáveis descritivos
-- Adicione docstrings para funções e classes
-- Siga as diretrizes de estilo PEP 8
-- Inclua type hints quando apropriado
-
-## Contribuindo
-
-1. Faça um fork do repositório
-2. Crie uma branch de funcionalidade
-3. Adicione testes para nova funcionalidade
-4. Garanta que todos os testes passem
-5. Envie um pull request
-
-## Licença
-
-Este projeto é código aberto e disponível sob a Licença MIT.
-
-## Agradecimentos
-
-Este projeto foi desenvolvido para ajudar a preencher a lacuna entre SQL e PySpark, facilitando a transição de desenvolvedores SQL para operações DataFrame PySpark.
-
-## Suporte
-
-Para dúvidas ou problemas, por favor:
-
-1. Verifique casos de teste existentes para exemplos
-2. Revise a documentação
-3. Execute o tradutor interativo para testes
-4. Examine o código fonte para detalhes de implementação
+**Desenvolvido para facilitar a modernização de sistemas legados e acelerar a adoção do Apache Spark em ambientes corporativos.**
